@@ -8,6 +8,8 @@ As far as of now I have only created the database code (WIP) and I'm working on 
 
 The dataset link : [reddit_dataset](https://www.reddit.com/r/datasets/comments/3bxlg7/i_have_every_publicly_available_reddit_comment/?st=j9udbxta&sh=69e4fee7)
 
+I have used the RC_2015-1 for my project, that's like 2015 january data. If you want to have something different, make sure you are changing the variable there.
+
 You can download the data that is provided in the post using the magnet link. I'm currently working with the one month data due to limitation and high time consumption over the data download.
 
 Later I am planning to create the bot with the bigquery table that they have [here](https://www.reddit.com/r/bigquery/comments/3cej2b/17_billion_reddit_comments_loaded_on_bigquery/?sort=new).

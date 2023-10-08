@@ -4,9 +4,10 @@ from datetime import datetime
 
 timeframe = '2015-01'
 sql_transaction = []
+file_path = "database/RC_2015-01"
 
 # Connect to database (creates a new database if it doesn't exist)
-conn = sqlite3.connect('example.db'.format(timeframe))
+conn = sqlite3.connect('reddit_data.db'.format(timeframe))
 
 # Create a cursor object to execute SQL commands
 c = conn.cursor()
@@ -100,7 +101,7 @@ if __name__=="__main__":
     row_counter = 0
     paired_rows = 0
     
-    with open("database/RC_2015-01", buffering=1000) as f:
+    with open(file_path, buffering=1000) as f:
         for row in f:
             row_counter += 1
             row = json.loads(row)
@@ -125,3 +126,6 @@ if __name__=="__main__":
                             paired_rows += 1
                         else:
                             sql_insert_no_parent(comment_id, parent_id, body, subreddit, created_utc, score)
+
+            if row_counter % 100000 == 0:
+                print("Total rows read: {}, Paired rows: {}, Time: {}".format(row_counter, paired_rows, str(datetime.now())))
