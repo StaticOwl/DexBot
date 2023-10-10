@@ -25,7 +25,7 @@ def format_data(data):
 
 def find_parent(pid):
     try:
-        sql = "SELECT comment FROM parent_reply WHERE comment_id = '{}' LIMIT 1".format(pid)
+        sql = "SELECT comment FROM parent_reply WHERE comment_id like '%{}%' LIMIT 1".format(pid.split('_')[1])
         c.execute(sql)
         result = c.fetchone()
         if result != None:
