@@ -1,21 +1,35 @@
+'''
+This code is good for creating a database from a json file. If you want to create a database from a json file, you can use this code. But this code takes up a lot of memory and time,
+and it's not very efficient for me, at least not in the way I'm thinking right now. I'm going to keep this code, but for updated code, check the dask folder in this project.
+'''
+
 import sqlite3
 import json
 from datetime import datetime
+import multiprocessing
 
 timeframe = '2015-01'
 sql_transaction = []
 file_path = "database/RC_2015-01"
+db_lock = multiprocessing.Lock()
 
 # Connect to database (creates a new database if it doesn't exist)
-conn = sqlite3.connect('reddit_data.db'.format(timeframe))
 
-# Create a cursor object to execute SQL commands
-c = conn.cursor()
+def get_connection():
+    conn = sqlite3.connect('reddit_data.db')
+    c = conn.cursor()
+    return (conn, c)
 
 def create_table(): 
-    c.execute("""CREATE TABLE IF NOT EXISTS parent_reply
+    try:
+        db_lock.acquire()
+        conn, c = get_connection()
+        c.execute("""CREATE TABLE IF NOT EXISTS parent_reply
                 (parent_id TEXT PRIMARY KEY, comment_id TEXT UNIQUE, parent TEXT,
                 comment TEXT, subreddit TEXT, unix INT, score INT)""")
+        conn.close()
+    finally:
+        db_lock.release()
 
 
 def format_data(data):
@@ -25,6 +39,8 @@ def format_data(data):
 
 def find_parent(pid):
     try:
+        db_lock.acquire()
+        conn, c = get_connection()
         sql = "SELECT comment FROM parent_reply WHERE comment_id like '%{}%' LIMIT 1".format(pid.split('_')[1])
         c.execute(sql)
         result = c.fetchone()
@@ -32,12 +48,17 @@ def find_parent(pid):
             return result[0]
         else:
             return False
+        conn.close()
     except Exception as e:
         print("find_parent", e)
         return False
+    finally:
+        db_lock.release()
     
 def find_existing_score(pid):
     try:
+        db_lock.acquire()
+        conn, c = get_connection()
         sql = "SELECT score FROM parent_reply WHERE parent_id = '{}' LIMIT 1".format(pid)
         c.execute(sql)
         result = c.fetchone()
@@ -45,9 +66,12 @@ def find_existing_score(pid):
             return result[0]
         else:
             return False
+        conn.close()
     except Exception as e:
         print("find_existing_score", e)
         return False
+    finally:
+        db_lock.release()
     
 def acceptable(data):
     if len(data.split(' ')) > 50 or len(data) < 1:
@@ -60,17 +84,16 @@ def acceptable(data):
         return True
     
 def transaction_bldr(sql):
-    global sql_transaction
-    sql_transaction.append(sql)
-    if len(sql_transaction) > 1000:
-        c.execute("BEGIN TRANSACTION")
-        for s in sql_transaction:
-            try:
-                c.execute(s)
-            except:
-                pass
+    try:
+        db_lock.acquire()
+        conn, c = get_connection()
+        c.execute(sql)
         conn.commit()
-        sql_transaction = []
+        conn.close()
+    except Exception as e:
+        print("transaction_bldr", e)
+    finally:
+        db_lock.release()
     
 def sql_insert_replace_comment(comment_id, parent_id, parent_data, body, subreddit, created_utc, score):
     try:
