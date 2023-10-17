@@ -1,25 +1,28 @@
 import sqlite3
 import pandas as pd
 import dask.dataframe as dd
+from dask import delayed
+from dask.distributed import Client
 
 def update_parent():
-
     pass
 
 def get_data_from_local_data(file_name = "dummy_data.txt"):
-    limit = 5000
-    last_unix = 0
-    cur_length = limit
-    counter = 0
-    test_done = False
     # column_list = ['name', 'id', 'body', 'created_utc', 'parent_id', 'score', 'subreddit']
     # rename_column_list = ['comment_id', 'parent_id', 'comment', 'unix', 'parent', 'score', 'subreddit']
-
-    df = dd.read_json(file_name, lines=True, blocksize=1000000)
-    # print(df.head())
-    with pd.option_context('display.max_rows', 100, 'display.max_columns', None):
-    #     # print(df.loc[df['id'] == '2qyr1a'])
-        print(df.head())
+    df = dd.read_json(file_name, lines=True, blocksize='64MB')
+    
+    # Select the relevant columns
+    df = df[['name', 'id', 'body', 'created_utc', 'parent_id', 'score', 'subreddit']]
+    
+    # Create a new DataFrame containing only 'id' and 'body' columns
+    parent_text_df = df[['id', 'body']].rename(columns={'id': 'parent_id', 'body': 'parent_text'})
+    
+    # Merge the original DataFrame with the parent_text DataFrame
+    merged_df = dd.merge(df, parent_text_df, on='parent_id', how='left')
+    
+    # Return the resulting DataFrame
+    return merged_df
         
     
     # while cur_length == limit:
@@ -49,7 +52,3 @@ def get_data_from_local_data(file_name = "dummy_data.txt"):
     #     counter += 1
     #     if counter % 20 == 0:
     #         print(counter*limit, 'rows completed so far')
-
-
-
-get_data_from_local_data("high_data_output.txt")
